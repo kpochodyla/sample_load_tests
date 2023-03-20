@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "sample-load-tests"
+version = "0.1.0"
+description = ""
+authors = ["kpochodyla <kpochodyla@protonmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+pytest = "^7.2.2"
+locust = "^2.15.1"
+black = "^23.1.0"
+isort = "^5.12.0"
+influxdb = "^5.3.1"
+locust-plugins = "^3.1.1"
+pydantic = "^1.10.6"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
