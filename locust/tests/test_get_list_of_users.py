@@ -5,10 +5,10 @@ import json
 import datetime
 import pytz
 import socket
-from settings.secrets import secretes
+from settings.secrets import secrets
 
 hostname = socket.gethostname()
-client = InfluxDBClient(host=secretes.influxdb_hostname, port=secretes.influxdb_port)
+client = InfluxDBClient(host=secrets.influxdb_hostname, port=secrets.influxdb_port)
 client.switch_database("locust_data")
 
 
