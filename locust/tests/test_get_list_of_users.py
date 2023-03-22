@@ -43,83 +43,77 @@ class LoadUser(HttpUser):
         exception,
         start_time,
         url,
-        **kwargs
+        **kwargs,
     ):
-        SUCCESS_TEMPLATE = (
-            '[{"measurement": "%s","tags": {"hostname":"%s","requestName": "%s","requestType": "%s","status":"%s"'
-            '},"time":"%s","fields": {"responseTime": "%s","responseLength":"%s"}'
-            "}]"
-        )
-
-        FAIL_TEMPLATE = (
-            '[{"measurement": "%s","tags": {"hostname":"%s","requestName": "%s","requestType": "%s","exception":"%s","status":"%s"'
-            '},"time":"%s","fields": {"responseTime": "%s","responseLength":"%s"}'
-            "}]"
-        )
-
         if exception:
-            json_string = FAIL_TEMPLATE % (
-                "ResponseTable",
-                hostname,
-                name,
-                request_type,
-                exception,
-                "fail",
-                datetime.datetime.now(tz=pytz.UTC),
-                response_time,
-                response_length,
-            )
+            json_string = f"""
+                [
+                    {{
+                        "measurement": "ResponseTable",
+                        "tags": 
+                            {{
+                                "hostname":" {hostname}",
+                                "requestName": "{name}",
+                                "requestType": "{request_type}",
+                                "status": "fail",
+                                "exception": "{exception}"
+                            }},
+                        "time":"{datetime.datetime.now(tz=pytz.UTC)}",
+                        "fields": 
+                            {{
+                                "responseTime": {response_time},
+                                "responseLength":{response_length}
+                            }}
+                    }}
+                ]
+            """
         else:
-            json_string = SUCCESS_TEMPLATE % (
-                "ResponseTable",
-                hostname,
-                name,
-                request_type,
-                "success",
-                datetime.datetime.now(tz=pytz.UTC),
-                response_time,
-                response_length,
-            )
+            json_string = f"""
+                [
+                    {{
+                        "measurement": "ResponseTable",
+                        "tags": 
+                            {{
+                                "hostname":"{hostname}",
+                                "requestName": "{name}",
+                                "requestType": "{request_type}",
+                                "status": "success"
+                            }},
+                        "time":"{datetime.datetime.now(tz=pytz.UTC)}",
+                        "fields": 
+                            {{
+                                "responseTime": {response_time},
+                                "responseLength": {response_length}
+                            }}
+                    }}
+                ]
+            """
         client.write_points(json.loads(json_string), time_precision="ms")
 
     @events.test_stop.add_listener
     def on_test_stop(environment, **kw):
-        SUMMARY_TEMPLATE = """
+        SUMMARY_TEMPLATE = f"""
         [
-            {
-                "measurement": "%s",
+            {{
+                "measurement": "{secrets.influxdb_summary}",
                 "tags": 
-                    {
-                        "hostname":"%s",
-                        "test_name": "%s"
-                    },
-                "time":"%s",
+                    {{
+                        "hostname": "{hostname}",
+                        "test_name": "{environment.locustfile}"
+                    }},
+                "time": "{datetime.datetime.now(tz=pytz.UTC)}",
                 "fields": 
-                    {
-                        "fail_ratio": "%s",
-                        "num_requests":"%s",
-                        "num_failures":"%s",
-                        "total_rps":"%s",
-                        "min_response_time":"%s",
-                        "max_response_time":"%s",
-                        "median_response_time":"%s",
-                        "avg_response_time":"%s"
-                    }
-            }
+                    {{
+                        "fail_ratio": {environment.stats.total.fail_ratio},
+                        "num_requests": {environment.stats.total.num_requests},
+                        "num_failures": {environment.stats.total.num_failures},
+                        "total_rps": {environment.stats.total.total_rps},
+                        "min_response_time": {environment.stats.total.min_response_time},
+                        "max_response_time": {environment.stats.total.max_response_time},
+                        "median_response_time": {environment.stats.total.median_response_time},
+                        "avg_response_time": {environment.stats.total.avg_response_time}
+                    }}
+            }}
         ]
 """
-        json_string = SUMMARY_TEMPLATE % (
-            "SummaryTable",
-            hostname,
-            environment.locustfile,
-            datetime.datetime.now(tz=pytz.UTC),
-            environment.stats.total.fail_ratio,
-            environment.stats.total.num_requests,
-            environment.stats.total.num_failures,
-            environment.stats.total.total_rps,
-            environment.stats.total.min_response_time,
-            environment.stats.total.max_response_time,
-            environment.stats.total.median_response_time,
-            environment.stats.total.avg_response_time,
-        )
-        client.write_points(json.loads(json_string), time_precision="ms")
+        client.write_points(json.loads(SUMMARY_TEMPLATE), time_precision="ms")
